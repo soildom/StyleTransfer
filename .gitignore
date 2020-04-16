@@ -1,0 +1,6 @@
+ContentImage/*
+StyleImage/*
+Output/*
+
+.DS_Store
+.idea/
