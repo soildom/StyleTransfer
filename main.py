@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchvision import transforms
-from torchvision import utils
 
 
 class VGGNet(nn.Module):
@@ -32,8 +31,8 @@ def load_img(content_path, style_path):
     style = cv.imread(style_path)
     original_h, original_w, _ = content.shape
 
-    cv.imwrite('Output/content.png', content)
-    cv.imwrite('Output/style.png', style)
+    cv.imwrite('Output/content.jpg', content)
+    cv.imwrite('Output/style.jpg', style)
 
     h, w = min(content.shape[0], style.shape[0]), min(content.shape[1], style.shape[1])
     content = cv.resize(content, (w, h), interpolation=cv.INTER_CUBIC).transpose((2, 0, 1))
@@ -61,16 +60,15 @@ if __name__ == '__main__':
         shutil.rmtree('Output/')
     os.makedirs('Output/target/')
 
-    content, style, h, w = load_img(config.content, config.style)
+    content, style, original_h, original_w = load_img(config.content, config.style)
     target = content.clone()
 
-    content = content.requires_grad_(False).to(device)
-    style = style.requires_grad_(False).to(device)
-    target = target.requires_grad_(True).to(device)
+    content = content.to(device).requires_grad_(False)
+    style = style.to(device).requires_grad_(False)
+    target = target.to(device).requires_grad_(True)
 
     vgg = VGGNet().to(device)
-    mse_sum = nn.MSELoss(reduction='sum').to(device)
-    mse_mean = nn.MSELoss(reduction='mean').to(device)
+    mse = nn.MSELoss().to(device)
     optimizer = torch.optim.Adam([target], lr=config.lr, betas=(0.5, 0.999))
 
     for step in range(config.total_step):
@@ -83,7 +81,7 @@ if __name__ == '__main__':
         for i, (f1, f2, f3) in enumerate(zip(target_features, content_features, style_features)):
             # 计算content损失
             if i == 4:
-                content_loss = mse_sum(f1, f2) / 2
+                content_loss = mse(f1, f2)
 
             # 计算style损失
             b, c, h, w = f1.size()
@@ -91,7 +89,7 @@ if __name__ == '__main__':
             f3 = f3.view(b * c, h * w)
             f1 = torch.mm(f1, f1.t())
             f3 = torch.mm(f3, f3.t())
-            style_loss += mse_mean(f1, f3) / 5
+            style_loss += mse(f1, f3) / 5
 
         loss = content_loss + config.style_weight * style_loss
         optimizer.zero_grad()
@@ -103,7 +101,7 @@ if __name__ == '__main__':
                   .format(step + 1, config.total_step, content_loss.item(), style_loss.item()))
 
             denorm = transforms.Normalize((-1.80, -2.04, -2.12), (4.44, 4.46, 4.37))
-            img = target.clone().squeeze(0)
+            img = target.detach().cpu().squeeze(0)
             img = (denorm(img) * 255).clamp_(0, 255).numpy().transpose((1, 2, 0)).astype(np.uint8)
-            img = cv.resize(img, (w, h), interpolation=cv.INTER_CUBIC)
-            cv.imwrite('Output/target/t-{}.png'.format(step + 1), img)
+            img = cv.resize(img, (original_w, original_h), interpolation=cv.INTER_CUBIC)
+            cv.imwrite('Output/target/t-{}.jpg'.format(step + 1), img)
