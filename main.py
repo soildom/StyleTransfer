@@ -61,7 +61,8 @@ if __name__ == '__main__':
     os.makedirs('Output/target/')
 
     content, style, original_h, original_w = load_img(config.content, config.style)
-    target = content.clone()
+    # target = content.clone()
+    target = torch.randn(content.size())
 
     content = content.to(device).requires_grad_(False)
     style = style.to(device).requires_grad_(False)
