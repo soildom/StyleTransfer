@@ -29,10 +29,14 @@ class VGGNet(nn.Module):
 def load_img(content_path, style_path):
     content = cv.imread(content_path)
     style = cv.imread(style_path)
+    content = cv.resize(content, (content.shape[1] // 10, content.shape[0] // 10), interpolation=cv.INTER_CUBIC)
+    # style = cv.resize(style, (style.shape[1] // 10, style.shape[0] // 10), interpolation=cv.INTER_CUBIC)
+
     original_h, original_w, _ = content.shape
 
     cv.imwrite('Output/vgg/content.jpg', content)
     cv.imwrite('Output/vgg/style.jpg', style)
+    cv.imwrite('Output/vgg/target/t-0.jpg', content)
 
     h, w = min(content.shape[0], style.shape[0]), min(content.shape[1], style.shape[1])
     content = cv.resize(content, (w, h), interpolation=cv.INTER_CUBIC).transpose((2, 0, 1))
@@ -45,14 +49,13 @@ def load_img(content_path, style_path):
     return norm(content).unsqueeze(0), norm(style).unsqueeze(0), original_h, original_w,
 
 
-if __name__ == '__main__':
+def vgg_transfer(content_path, style_path, generate_from_noise=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--content', type=str, default='ContentImage/1.png')
-    parser.add_argument('--style', type=str, default='StyleImage/1.jpg')
-    parser.add_argument('--total_step', type=int, default=5000)
+    parser.add_argument('--total_step', type=int, default=50000)
     parser.add_argument('--log_step', type=int, default=50)
+    parser.add_argument('--save_step', type=int, default=100)
     parser.add_argument('--style_weight', type=float, default=100)
-    parser.add_argument('--lr', type=float, default=0.003)
+    parser.add_argument('--lr', type=float, default=0.01)
     config = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -60,9 +63,11 @@ if __name__ == '__main__':
         shutil.rmtree('Output/vgg/')
     os.makedirs('Output/vgg/target/')
 
-    content, style, original_h, original_w = load_img(config.content, config.style)
-    # target = content.clone()
-    target = torch.randn(content.size())
+    content, style, original_h, original_w = load_img(content_path, style_path)
+    if generate_from_noise:
+        target = torch.randn(content.size())
+    else:
+        target = content.clone()
 
     content = content.to(device).requires_grad_(False)
     style = style.to(device).requires_grad_(False)
@@ -70,7 +75,11 @@ if __name__ == '__main__':
 
     vgg = VGGNet().to(device)
     mse = nn.MSELoss().to(device)
-    optimizer = torch.optim.Adam([target], lr=config.lr, betas=(0.5, 0.999))
+    optimizer = torch.optim.Adam([target], lr=config.lr)
+    schedule = torch.optim.lr_scheduler.MultiStepLR(optimizer, [1000, 3000, 6000, 10000, 20000, 30000, 40000],
+                                                    gamma=0.5)
+
+    denorm = transforms.Normalize((-1.80, -2.04, -2.12), (4.44, 4.46, 4.37))
 
     for step in range(config.total_step):
         target_features = vgg(target)
@@ -96,13 +105,18 @@ if __name__ == '__main__':
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        schedule.step()
 
         if (step + 1) % config.log_step == 0:
-            print('Step [{}/{}], Content Loss: {:.4f}, Style Loss: {:.4f}'
-                  .format(step + 1, config.total_step, content_loss.item(), style_loss.item()))
+            print('[%5d/%d] ====> Content Loss: %.4f, Style Loss: %.4f' % (
+                step + 1, config.total_step, content_loss.item(), style_loss.item()))
 
-            denorm = transforms.Normalize((-1.80, -2.04, -2.12), (4.44, 4.46, 4.37))
+        if (step + 1) % config.save_step == 0:
             img = target.detach().cpu().squeeze(0)
             img = (denorm(img) * 255).clamp_(0, 255).numpy().transpose((1, 2, 0)).astype(np.uint8)
             img = cv.resize(img, (original_w, original_h), interpolation=cv.INTER_CUBIC)
-            cv.imwrite('Output/vgg/target/t-{}.jpg'.format(step + 1), img)
+            cv.imwrite('Output/vgg/target/t-%d.jpg' % (step + 1), img)
+
+
+if __name__ == '__main__':
+    vgg_transfer(content_path='ContentImage/2.jpeg', style_path='StyleImage/2.jpeg')

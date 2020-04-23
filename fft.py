@@ -1,21 +1,28 @@
-from PIL import Image
-import matplotlib.pyplot as plt
-from scipy.fftpack import fft, ifft
-import numpy as np
+import os
+import shutil
+
 import cv2
+import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.pylab import mpl
+from scipy.fftpack import fft, ifft
 
 
-def change_style():
+def fft_transfer(content_path, style_path):
+    save_path = 'Output/fft/'
+    if os.path.exists(save_path):
+        shutil.rmtree(save_path)
+    os.makedirs(save_path)
+
     mpl.rcParams['font.sans-serif'] = ['SimHei']  # 显示中文
     mpl.rcParams['axes.unicode_minus'] = False  # 显示负号
-    im1 = cv2.imread('ContentImage/1.png')
-    im2 = cv2.imread('StyleImage/1.jpg')
-    im2 = cv2.resize(im2, (im1.shape[1], im1.shape[0]))
-    im1 = im1 / 255
-    im2 = im2 / 255
-    y1 = np.array(im1)
-    y2 = np.array(im2)
+    content = cv2.imread(content_path)
+    style = cv2.imread(style_path)
+    style = cv2.resize(style, (content.shape[1], content.shape[0]))
+    content = content / 255
+    style = style / 255
+    y1 = np.array(content)
+    y2 = np.array(style)
     fft_y1 = fft(y1)
     fft_y2 = fft(y2)
     abs_y1 = np.abs(fft_y1)  # 取复数的绝对值，即复数的模(双边频谱)
@@ -28,11 +35,11 @@ def change_style():
     yr = abs(ifft(yfr))
 
     plt.subplot(441)
-    plt.imshow(im1)
+    plt.imshow(content)
     plt.title('原始图像一', fontsize=9)
 
     plt.subplot(444)
-    plt.imshow(im2)
+    plt.imshow(style)
     plt.title('原始图像二', fontsize=9)
 
     plt.subplot(446)
@@ -61,5 +68,15 @@ def change_style():
 
     plt.show()
 
+    cv2.imwrite(save_path + 'Content.png', (content * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Style.png', (style * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Amplitude-1.png', (abs_y1 * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Amplitude-2.png', (abs_y2 * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Phase-1.png', (angle_y1 * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Phase-2.png', (angle_y2 * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Target-1.png', (xr * 255).astype(np.uint8).clip(min=0, max=255))
+    cv2.imwrite(save_path + 'Target-2.png', (yr * 255).astype(np.uint8).clip(min=0, max=255))
 
-change_style()
+
+if __name__ == '__main__':
+    fft_transfer('ContentImage/1.png', 'StyleImage/1.jpg')
