@@ -54,7 +54,7 @@ def vgg_transfer(content_path, style_path, generate_from_noise=False):
     parser.add_argument('--total_step', type=int, default=50000)
     parser.add_argument('--log_step', type=int, default=50)
     parser.add_argument('--save_step', type=int, default=100)
-    parser.add_argument('--style_weight', type=float, default=100)
+    parser.add_argument('--style_weight', type=float, default=50)
     parser.add_argument('--lr', type=float, default=0.01)
     config = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -119,4 +119,4 @@ def vgg_transfer(content_path, style_path, generate_from_noise=False):
 
 
 if __name__ == '__main__':
-    vgg_transfer(content_path='ContentImage/2.jpeg', style_path='StyleImage/2.jpeg')
+    vgg_transfer(content_path='ContentImage/2.jpeg', style_path='StyleImage/2.jpeg', generate_from_noise=True)
