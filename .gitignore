@@ -3,6 +3,10 @@ StyleImage/*
 Output/*
 
 *.gif
+*.jpg
+*.jpeg
+*.png
 
 .DS_Store
 .idea/
+/test.py

@@ -2,7 +2,7 @@ import os
 import imageio
 import cv2 as cv
 from fft import fft_transfer
-from vgg import vgg_transfer
+from class_1st import generate
 
 
 def img2gif(img_root_path, save_path, duration=0.0001):
