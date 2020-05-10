@@ -30,32 +30,39 @@ class COCOTrain2017(data.Dataset):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, res_scale=0.2):
+    def __init__(self, res_scale=0.1):
         super(ResidualBlock, self).__init__()
         self.res_scale = res_scale
         self.Conv = nn.Sequential(
-            nn.Conv2d(128, 128, 3),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(128, 128, 3),
+            nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(128),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(128)
         )
 
     def forward(self, x):
-        return x[:, :, 2:-2, 2:-2] + self.res_scale * self.Conv(x)
+        return x + self.res_scale * self.Conv(x)
 
 
 class TransferNet(nn.Sequential):
     def __init__(self):
         super(TransferNet, self).__init__(
-            nn.ReflectionPad2d(40),
+            nn.Conv2d(3, 32, 9, padding=4, padding_mode='reflect'),
+            nn.InstanceNorm2d(32),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
-            nn.Conv2d(3, 32, 9, stride=1, padding=4),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(32, 64, 3, stride=2, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(64),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
-            nn.Conv2d(32, 64, 3, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Conv2d(64, 128, 3, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(64, 128, 3, stride=2, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(128),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
             ResidualBlock(),
             ResidualBlock(),
@@ -64,31 +71,35 @@ class TransferNet(nn.Sequential):
             ResidualBlock(),
 
             nn.Upsample(scale_factor=2, mode='nearest'),
-            nn.Conv2d(128, 64, 3, stride=1, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(128, 64, 3, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(64),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
             nn.Upsample(scale_factor=2, mode='nearest'),
-            nn.Conv2d(64, 32, 3, stride=1, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(64, 32, 3, padding=1, padding_mode='reflect'),
+            nn.InstanceNorm2d(32),
+            # nn.LeakyReLU(0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
-            nn.Conv2d(32, 3, 9, stride=1, padding=4)
+            nn.Conv2d(32, 3, 9, padding=4, padding_mode='reflect')
         )
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
-                nn.init.constant_(m.bias, val=0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+        #         nn.init.constant_(m.bias, val=0)
 
 
 class PerceptualLoss(nn.Module):
     def __init__(self, style, device):
         super(PerceptualLoss, self).__init__()
-        self.select = ['3', '8', '15', '22']
-        self.vgg = nn.Sequential(*list(torchvision.models.vgg16(pretrained=True).features)[:23]).eval().to(device)
+        self.select = ['0', '5', '10', '19', '21', '28']
+        self.vgg = nn.Sequential(*list(torchvision.models.vgg19(pretrained=True).features)[:29]).to(device).eval()
         for param in self.vgg.parameters():
             param.requires_grad = False
-        # self.criterion = nn.MSELoss()
-        self.criterion = nn.L1Loss()
+        self.criterion = nn.MSELoss()
+        # self.criterion = nn.L1Loss()
         self.style_features = self.get_features(style)
 
     def forward(self, x, content):
@@ -98,7 +109,7 @@ class PerceptualLoss(nn.Module):
         style_loss = 0.0
         for i, (f1, f2, f3) in enumerate(zip(x_features, content_features, self.style_features)):
             # content loss
-            if i == 2:
+            if i == 4:
                 content_loss = self.criterion(f1, f2)
 
             # style loss
@@ -107,7 +118,7 @@ class PerceptualLoss(nn.Module):
             f3 = f3.view(1, c, h * w)
             f1_gram = torch.bmm(f1, f1.transpose(1, 2))  # / (c * h * w)
             f3_gram = torch.bmm(f3, f3.transpose(1, 2))  # / (c * h * w)
-            style_loss += self.criterion(f1_gram, f3_gram.expand_as(f1_gram))
+            style_loss += self.criterion(f1_gram, f3_gram.expand_as(f1_gram)) / 6
 
         return content_loss, style_loss
 
@@ -123,16 +134,16 @@ class PerceptualLoss(nn.Module):
 class TotalVariationLoss(nn.Module):
     def __init__(self):
         super(TotalVariationLoss, self).__init__()
-        self.l1 = nn.L1Loss(reduction='sum')
+        self.l1 = nn.L1Loss()
 
     def forward(self, x):
         return self.l1(x[:, :, 1:, :], x[:, :, :- 1, :]) + self.l1(x[:, :, :, 1:], x[:, :, :, : - 1])
 
 
 def train(style_img_path):
-    batch_size = 8
+    batch_size = 4
     epoch_num = 1
-    log_size = 100
+    log_size = 200
     content_weight = 1
     style_weight = 1e2
     tv_weight = 1e-6
@@ -153,7 +164,7 @@ def train(style_img_path):
     perceptual = PerceptualLoss(style, device).to(device).eval()
     tv = TotalVariationLoss().to(device).eval()
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
     # for epoch in range(1, epoch_num + 1):
     #     for i in range(1, len(data_loader) + 1):
@@ -181,32 +192,33 @@ def train(style_img_path):
                 running_style_loss += style_loss.item()
                 running_tv_loss += tv_loss.item()
 
-                pbar.desc = 'Content Loss:%.4f, Style Loss:%.6f, TV Loss:%.2f ===> ' % (
+                pbar.desc = 'Content Loss:%.4f, Style Loss:%f, TV Loss:%.2f ===> ' % (
                     content_loss.item(), style_loss.item(), tv_loss.item())
 
                 if i % log_size == 0:
-                    pbar.desc = 'Content Loss:%.4f, Style Loss:%.6f, TV Loss:%.2f ===> ' % (
+                    pbar.desc = 'Content Loss:%.4f, Style Loss:%f, TV Loss:%.2f ===> ' % (
                         running_content_loss / log_size, running_style_loss / log_size, running_tv_loss / log_size)
                     print()
                     running_content_loss = 0.0
                     running_style_loss = 0.0
                     running_tv_loss = 0.0
 
-                    net = net.eval()
-                    x = Image.open('Data/class_1st/ContentImage/2.jpeg')
-                    transform = transforms.Compose([
-                        transforms.Resize((x.size[1] // 2, x.size[0] // 2), Image.BICUBIC),
-                        transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                    ])
-                    denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
+                    with torch.no_grad():
+                        net = net.eval()
+                        x = Image.open('Data/class_1st/ContentImage/2.jpeg')
+                        transform = transforms.Compose([
+                            transforms.Resize((x.size[1] // 10, x.size[0] // 10), Image.BICUBIC),
+                            transforms.ToTensor(),
+                            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                        ])
+                        denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
-                    torchvision.utils.save_image(
-                        denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1), 'tmp.png')
-                    net = net.train()
+                        torchvision.utils.save_image(
+                            denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1), 'tmp.png')
+                        net = net.train()
 
-                if i % 500 == 0:
-                    scheduler.step()
+                # if i % 500 == 0:
+                #     scheduler.step()
 
         torch.save(net, 'Model/class_2nd/' + style_img_path.split('/')[-1].split('.')[0] + '.pth')
 
@@ -232,3 +244,7 @@ if __name__ == '__main__':
     train('Data/class_1st/StyleImage/Starry_Night.jpg')
     # generate('Data/class_1st/ContentImage/1.png')
     # print(nn.Sequential(*list(torchvision.models.vgg16(pretrained=True).features)))
+
+    # x = torch.ones((1, 3, 256, 256)).to(torch.device("cuda:0"))
+    # net = TransferNet().to(torch.device("cuda:0"))
+    # print(net(x).size())
