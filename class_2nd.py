@@ -36,8 +36,8 @@ class ResidualBlock(nn.Module):
         self.Conv = nn.Sequential(
             nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128)
         )
@@ -51,18 +51,18 @@ class TransferNet(nn.Sequential):
         super(TransferNet, self).__init__(
             nn.Conv2d(3, 32, 9, padding=4, padding_mode='reflect'),
             nn.InstanceNorm2d(32),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
             nn.Conv2d(32, 64, 3, stride=2, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(64),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
             nn.Conv2d(64, 128, 3, stride=2, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
             ResidualBlock(),
             ResidualBlock(),
@@ -73,14 +73,14 @@ class TransferNet(nn.Sequential):
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.Conv2d(128, 64, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(64),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.Conv2d(64, 32, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(32),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
             nn.Conv2d(32, 3, 9, padding=4, padding_mode='reflect')
         )
@@ -142,11 +142,11 @@ class TotalVariationLoss(nn.Module):
 
 def train(style_img_path):
     batch_size = 4
-    epoch_num = 1
+    epoch_num = 2
     log_size = 200
     content_weight = 1
-    style_weight = 1e2
-    tv_weight = 1e-6
+    style_weight = 4e-6
+    tv_weight = 1e-5
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     transform = transforms.Compose([
@@ -164,7 +164,7 @@ def train(style_img_path):
     perceptual = PerceptualLoss(style, device).to(device).eval()
     tv = TotalVariationLoss().to(device).eval()
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
 
     # for epoch in range(1, epoch_num + 1):
     #     for i in range(1, len(data_loader) + 1):
@@ -192,12 +192,13 @@ def train(style_img_path):
                 running_style_loss += style_loss.item()
                 running_tv_loss += tv_loss.item()
 
-                pbar.desc = 'Content Loss:%.4f, Style Loss:%f, TV Loss:%.2f ===> ' % (
-                    content_loss.item(), style_loss.item(), tv_loss.item())
+                pbar.desc = 'epoch:%d ===> Content Loss:%.2f, Style Loss:%.2f, TV Loss:%.2f ' % (
+                    epoch, content_loss.item(), style_loss.item(), tv_loss.item())
 
                 if i % log_size == 0:
-                    pbar.desc = 'Content Loss:%.4f, Style Loss:%f, TV Loss:%.2f ===> ' % (
-                        running_content_loss / log_size, running_style_loss / log_size, running_tv_loss / log_size)
+                    pbar.desc = 'epoch:%d ===> Content Loss:%.2f, Style Loss:%.2f, TV Loss:%.2f ' % (
+                        epoch, running_content_loss / log_size, running_style_loss / log_size,
+                        running_tv_loss / log_size)
                     print()
                     running_content_loss = 0.0
                     running_style_loss = 0.0
@@ -217,8 +218,8 @@ def train(style_img_path):
                             denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1), 'tmp.png')
                         net = net.train()
 
-                # if i % 500 == 0:
-                #     scheduler.step()
+                if i % 500 == 0:
+                    scheduler.step()
 
         torch.save(net, 'Model/class_2nd/' + style_img_path.split('/')[-1].split('.')[0] + '.pth')
 
@@ -226,23 +227,22 @@ def train(style_img_path):
 def generate(src_path):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    x = Image.open(src_path)
+    x = Image.open(src_path).convert('RGB')
     transform = transforms.Compose([
-        transforms.Resize((x.size[1] // 2, x.size[0] // 2), Image.BICUBIC),
+        transforms.Resize((x.size[1], x.size[0]), Image.BICUBIC),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
-    x = transform(x).unsqueeze(0).to(device)
     net = torch.load('Model/class_2nd/Starry_Night.pth', map_location=device)
-    y = denormalize(net(x).squeeze(0)).clamp_(0, 1)
-    torchvision.utils.save_image(y, 'tmp.png')
+    torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
+                                 'tmp.png')
 
 
 if __name__ == '__main__':
-    train('Data/class_1st/StyleImage/Starry_Night.jpg')
-    # generate('Data/class_1st/ContentImage/1.png')
+    # train('Data/class_1st/StyleImage/Starry_Night.jpg')
+    generate('Data/class_2nd/000000000086.jpg')
     # print(nn.Sequential(*list(torchvision.models.vgg16(pretrained=True).features)))
 
     # x = torch.ones((1, 3, 256, 256)).to(torch.device("cuda:0"))
