@@ -1,0 +1,9 @@
+Class 2nd:
+Starry Night:
+    content_weight = 1
+    style_weight = 4e-6
+    tv_weight = 1e-5
+神奈川沖浪裏:
+    content_weight = 1
+    style_weight = 1.5e-6
+    tv_weight = 1e-5

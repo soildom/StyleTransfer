@@ -145,7 +145,7 @@ def train(style_img_path):
     epoch_num = 2
     log_size = 200
     content_weight = 1
-    style_weight = 4e-6
+    style_weight = 1.5e-6
     tv_weight = 1e-5
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -241,8 +241,8 @@ def generate(src_path):
 
 
 if __name__ == '__main__':
-    # train('Data/class_1st/StyleImage/Starry_Night.jpg')
-    generate('Data/class_2nd/000000000086.jpg')
+    train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
+    # generate('Data/class_2nd/000000000086.jpg')
     # print(nn.Sequential(*list(torchvision.models.vgg16(pretrained=True).features)))
 
     # x = torch.ones((1, 3, 256, 256)).to(torch.device("cuda:0"))
