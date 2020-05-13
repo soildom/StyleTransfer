@@ -24,4 +24,4 @@ def resize(src_path, target_path, size):
 
 
 if __name__ == '__main__':
-    resize('E:/Development/DataSet/COCOtrain2017/', 'Data/class_2nd/', 256)
+    resize('E:/Development/DataSet/COCOtrain2017/', 'Data/COCO-Train2017/', 256)

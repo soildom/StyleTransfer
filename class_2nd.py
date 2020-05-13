@@ -1,32 +1,13 @@
-import os
-import shutil
-import argparse
 from tqdm import tqdm
-import numpy as np
-import cv2 as cv
 from PIL import Image
 import torch
 import torch.nn as nn
 import torch.utils.data as data
 import torchvision
 from torchvision import transforms
+from load_data import *
 
-
-class COCOTrain2017(data.Dataset):
-    def __init__(self, path, transform):
-        self.path = path
-        self.transform = transform
-
-        self.img_names = os.listdir(path)
-        for img_name in self.img_names:
-            if not (img_name.endswith('.jpg') or img_name.endswith('.jpeg') or img_name.endswith('.png')):
-                self.img_names.remove(img_name)
-
-    def __getitem__(self, item):
-        return self.transform(Image.open(self.path + self.img_names[item]).convert('RGB'))
-
-    def __len__(self):
-        return len(self.img_names)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class ResidualBlock(nn.Module):
@@ -37,7 +18,6 @@ class ResidualBlock(nn.Module):
             nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128)
         )
@@ -52,17 +32,14 @@ class TransferNet(nn.Sequential):
             nn.Conv2d(3, 32, 9, padding=4, padding_mode='reflect'),
             nn.InstanceNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
 
             nn.Conv2d(32, 64, 3, stride=2, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
 
             nn.Conv2d(64, 128, 3, stride=2, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
 
             ResidualBlock(),
             ResidualBlock(),
@@ -74,21 +51,14 @@ class TransferNet(nn.Sequential):
             nn.Conv2d(128, 64, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
 
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.Conv2d(64, 32, 3, padding=1, padding_mode='reflect'),
             nn.InstanceNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
 
             nn.Conv2d(32, 3, 9, padding=4, padding_mode='reflect')
         )
-
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
-        #         nn.init.constant_(m.bias, val=0)
 
 
 class PerceptualLoss(nn.Module):
@@ -148,7 +118,6 @@ def train(style_img_path):
     style_weight = 1.5e-6
     tv_weight = 1e-5
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -157,7 +126,7 @@ def train(style_img_path):
     style = Image.open(style_img_path).resize((256, 256), Image.BICUBIC)
     style = transform(style).unsqueeze(0).to(device).requires_grad_(False)
 
-    data_set = COCOTrain2017('Data/class_2nd/', transform)
+    data_set = DataSet('Data/COCO-Train2017/', transform)
     data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = TransferNet().to(device).train()
@@ -165,12 +134,6 @@ def train(style_img_path):
     tv = TotalVariationLoss().to(device).eval()
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-
-    # for epoch in range(1, epoch_num + 1):
-    #     for i in range(1, len(data_loader) + 1):
-    #         if i % 500 == 0:
-    #             print(epoch, i, optimizer.param_groups[0]['lr'])
-    #             scheduler.step()
 
     for epoch in range(1, epoch_num + 1):
         running_content_loss = 0.0
@@ -225,8 +188,6 @@ def train(style_img_path):
 
 
 def generate(src_path):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
     x = Image.open(src_path).convert('RGB')
     transform = transforms.Compose([
         transforms.Resize((x.size[1], x.size[0]), Image.BICUBIC),
@@ -242,9 +203,4 @@ def generate(src_path):
 
 if __name__ == '__main__':
     train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
-    # generate('Data/class_2nd/000000000086.jpg')
-    # print(nn.Sequential(*list(torchvision.models.vgg16(pretrained=True).features)))
-
-    # x = torch.ones((1, 3, 256, 256)).to(torch.device("cuda:0"))
-    # net = TransferNet().to(torch.device("cuda:0"))
-    # print(net(x).size())
+    # generate('Data/COCO-Train2017/000000000086.jpg')
