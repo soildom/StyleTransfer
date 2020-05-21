@@ -172,7 +172,7 @@ def train(style_img_path):
                 if i % 500 == 0:
                     scheduler.step()
 
-        torch.save(net, 'Model/class_2nd/' + style_img_path.split('/')[-1].split('.')[0] + '.pth')
+        torch.save(net.state_dict(), 'Model/class_2nd/' + style_img_path.split('/')[-1].split('.')[0] + '.pth')
 
 
 def generate(src_path):
