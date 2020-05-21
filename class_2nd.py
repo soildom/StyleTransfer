@@ -126,7 +126,7 @@ def train(style_img_path):
     style = Image.open(style_img_path).resize((256, 256), Image.BICUBIC)
     style = transform(style).unsqueeze(0).to(device).requires_grad_(False)
 
-    data_set = DataSet('Data/COCO-Train2017/', transform)
+    data_set = StyleTransferDataSet('Data/COCO-Train2017/', transform)
     data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = TransferNet().to(device).train()
