@@ -81,7 +81,8 @@ def train():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    data_set = SRDataSet(lr_path='', hr_path='', transform=transform)
+    data_set = SRDataSet(lr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_LR(x4)/',
+                         hr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_HR/', transform=transform)
     data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = SRNet().to(device)
@@ -110,11 +111,11 @@ def train():
                 running_l1_loss += l1_loss.item()
                 running_tv_loss += tv_loss.item()
 
-                pbar.desc = 'epoch:%d ===> VGG Loss:%.2f, L1 Loss:%.2f, TV Loss:%.2f ' % (
+                pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f, TV Loss:%.4f ' % (
                     epoch, vgg_loss.item(), l1_loss.item(), tv_loss.item())
 
                 if i % log_size == 0:
-                    pbar.desc = 'epoch:%d ===> VGG Loss:%.2f, L1 Loss:%.2f, TV Loss:%.2f ' % (
+                    pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f, TV Loss:%.4f ' % (
                         epoch, running_vgg_loss / log_size, running_l1_loss / log_size, running_tv_loss / log_size)
                     print()
                     running_vgg_loss = 0.0
