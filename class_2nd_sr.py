@@ -11,15 +11,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, input_channel, res_scale=0.1):
+    def __init__(self, input_channel, res_scale=0.2):
         super(ResidualBlock, self).__init__()
         self.res_scale = res_scale
         self.Conv = nn.Sequential(
             nn.Conv2d(input_channel, input_channel, 3, padding=1, padding_mode='reflect'),
-            nn.InstanceNorm2d(input_channel),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(input_channel, input_channel, 3, padding=1, padding_mode='reflect'),
-            nn.InstanceNorm2d(input_channel)
         )
 
     def forward(self, x):
@@ -29,23 +27,13 @@ class ResidualBlock(nn.Module):
 class TransferNet(nn.Sequential):
     def __init__(self):
         super(TransferNet, self).__init__(
-            nn.Conv2d(3, 32, 9, padding=4, padding_mode='reflect'),
-            nn.InstanceNorm2d(32),
+            nn.Conv2d(3, 64, 9, padding=4, padding_mode='reflect'),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(32, 64, 3, stride=2, padding=1, padding_mode='reflect'),
-            nn.InstanceNorm2d(64),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Conv2d(64, 128, 3, stride=2, padding=1, padding_mode='reflect'),
-            nn.InstanceNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            ResidualBlock(128),
-            ResidualBlock(128),
-            ResidualBlock(128),
-            ResidualBlock(128),
-            ResidualBlock(128),
+            ResidualBlock(64),
+            ResidualBlock(64),
+            ResidualBlock(64),
+            ResidualBlock(64),
 
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.Conv2d(128, 64, 3, padding=1, padding_mode='reflect'),
@@ -188,22 +176,19 @@ def train(style_img_path):
 
 
 def generate(src_path):
-    with torch.no_grad():
-        x = Image.open(src_path).convert('RGB')
-        transform = transforms.Compose([
-            transforms.Resize((x.size[1] // 10, x.size[0] // 10), Image.BICUBIC),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
+    x = Image.open(src_path).convert('RGB')
+    transform = transforms.Compose([
+        transforms.Resize((x.size[1], x.size[0]), Image.BICUBIC),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
-        net = TransferNet()
-        net.load_state_dict(torch.load('Model/class_2nd/神奈川沖浪裏.pth', map_location=device))
-        net = net.eval()
-        torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
-                                     'tmp.png')
+    net = torch.load('Model/class_2nd/Starry_Night.pth', map_location=device)
+    torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
+                                 'tmp.png')
 
 
 if __name__ == '__main__':
-    # train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
-    generate('/Users/soildom/Documents/PycharmProjects/Style Transfer/ContentImage/IMG_0375.jpeg')
+    train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
+    # generate('Data/COCO-Train2017/000000000086.jpg')
