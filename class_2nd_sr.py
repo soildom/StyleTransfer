@@ -143,5 +143,5 @@ def generate(lr_path):
 
 
 if __name__ == '__main__':
-    # train()
-    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0818_14.png')
+    train()
+    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0818_14.png')
