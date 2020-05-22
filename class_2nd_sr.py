@@ -69,8 +69,7 @@ class SRLoss(nn.Module):
     def forward(self, hr, sr):
         vgg_loss = self.l1(self.vgg(hr), self.vgg(sr))
         l1_loss = self.l1(hr, sr)
-        tv_loss = self.l1(sr[:, :, 1:, :], sr[:, :, :- 1, :]) + self.l1(sr[:, :, :, 1:], sr[:, :, :, : - 1])
-        return vgg_loss, l1_loss, tv_loss
+        return vgg_loss, l1_loss
 
 
 def train():
@@ -79,7 +78,6 @@ def train():
     log_size = 200
     vgg_weight = 1
     l1_weight = 1e-2
-    tv_weight = 1e-8
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -98,15 +96,14 @@ def train():
     for epoch in range(1, epoch_num + 1):
         running_vgg_loss = 0.0
         running_l1_loss = 0.0
-        running_tv_loss = 0.0
 
         with tqdm(range(1, len(data_loader) + 1)) as pbar:
             for i, (lr, hr) in zip(pbar, data_loader):
                 lr, hr = lr.to(device), hr.to(device)
                 sr = net(lr)
 
-                vgg_loss, l1_loss, tv_loss = criterion(hr, sr)
-                loss = vgg_weight * vgg_loss + l1_weight * l1_loss + tv_weight * tv_loss
+                vgg_loss, l1_loss = criterion(hr, sr)
+                loss = vgg_weight * vgg_loss + l1_weight * l1_loss
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -114,18 +111,15 @@ def train():
 
                 running_vgg_loss += vgg_loss.item()
                 running_l1_loss += l1_loss.item()
-                running_tv_loss += tv_loss.item()
 
-                pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f, TV Loss:%.4f ' % (
-                    epoch, vgg_loss.item(), l1_loss.item(), tv_loss.item())
+                pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f' % (epoch, vgg_loss.item(), l1_loss.item())
 
                 if i % log_size == 0:
-                    pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f, TV Loss:%.4f ' % (
-                        epoch, running_vgg_loss / log_size, running_l1_loss / log_size, running_tv_loss / log_size)
+                    pbar.desc = 'epoch:%d ===> VGG Loss:%.4f, L1 Loss:%.4f' % (
+                        epoch, running_vgg_loss / log_size, running_l1_loss / log_size)
                     print()
                     running_vgg_loss = 0.0
                     running_l1_loss = 0.0
-                    running_tv_loss = 0.0
 
         # print(epoch, optimizer.param_groups[0]['lr'])
         scheduler.step()
@@ -149,5 +143,5 @@ def generate(lr_path):
 
 
 if __name__ == '__main__':
-    train()
-    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0818_14.png')
+    # train()
+    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0818_14.png')
