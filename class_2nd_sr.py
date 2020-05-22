@@ -28,7 +28,7 @@ class ResidualBlock(nn.Module):
 class UpSampleBlock(nn.Module):
     def __init__(self, input_channel):
         super(UpSampleBlock, self).__init__()
-        self.conv = nn.Conv2d(input_channel, input_channel, 3, padding=1)
+        self.conv = nn.Conv2d(input_channel, input_channel, 3, padding=1, padding_mode='reflect')
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
 
     def forward(self, x):
@@ -51,6 +51,11 @@ class SRNet(nn.Sequential):
 
             nn.Conv2d(64, 3, 9, padding=4, padding_mode='reflect')
         )
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+                nn.init.constant_(m.bias, 0)
 
 
 class SRLoss(nn.Module):
@@ -127,19 +132,22 @@ def train():
         torch.save(net.state_dict(), 'Model/class_2nd/sr.pth')
 
 
-def generate(src_path):
-    x = Image.open(src_path).convert('RGB')
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
+def generate(lr_path):
+    with torch.no_grad():
+        lr = Image.open(lr_path).convert('RGB')
+        lr_bicubic = lr.resize((lr.size[0] * 4, lr.size[1] * 4), Image.BICUBIC)
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
-    net = torch.load('Model/class_2nd/sr.pth', map_location=device)
-    torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
-                                 'tmp.png')
+        net = SRNet()
+        net.load_state_dict(torch.load('Model/class_2nd/sr.pth', map_location=device))
+        sr = denormalize(net(transform(lr).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1)
+        torchvision.utils.save_image(torch.cat((transforms.ToTensor()(lr_bicubic), sr), 2), 'tmp.png')
 
 
 if __name__ == '__main__':
     train()
-    # generate('Data/COCO-Train2017/000000000086.jpg')
+    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0818_14.png')
