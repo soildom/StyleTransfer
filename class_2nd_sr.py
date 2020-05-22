@@ -52,10 +52,10 @@ class SRNet(nn.Sequential):
             nn.Conv2d(64, 3, 9, padding=4, padding_mode='reflect')
         )
 
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
-        #         nn.init.constant_(m.bias, 0)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
+                nn.init.constant_(m.bias, 0)
 
 
 class SRLoss(nn.Module):
@@ -86,7 +86,7 @@ def train():
 
     data_set = SRDataSet(lr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_LR(x4)/',
                          hr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_HR/', transform=transform)
-    data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=8)
+    data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = SRNet().to(device)
     criterion = SRLoss().to(device)
