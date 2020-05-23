@@ -62,7 +62,7 @@ class TransferNet(nn.Sequential):
 
 
 class PerceptualLoss(nn.Module):
-    def __init__(self, style, device):
+    def __init__(self, style):
         super(PerceptualLoss, self).__init__()
         self.select = ['0', '5', '10', '19', '21', '28']
         self.vgg = nn.Sequential(*list(torchvision.models.vgg19(pretrained=True).features)[:29]).to(device).eval()
