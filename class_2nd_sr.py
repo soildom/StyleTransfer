@@ -1,11 +1,5 @@
 from tqdm import tqdm
-from PIL import Image
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data as data
-import torchvision
-from torchvision import transforms
 from load_data import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,11 +14,6 @@ class ResidualBlock(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(input_channel, input_channel, 3, padding=1, padding_mode='reflect')
         )
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         return x + self.res_scale * self.Conv(x)
@@ -55,6 +44,11 @@ class SRNet(nn.Sequential):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(64, 3, 3, padding=1, padding_mode='reflect'),
         )
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+                nn.init.constant_(m.bias, 0)
 
 
 class SRLoss(nn.Module):
