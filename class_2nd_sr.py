@@ -147,7 +147,6 @@ def train():
                     running_vgg_loss = 0.0
                     running_pixel_loss = 0.0
 
-        # print(epoch, optimizer1.param_groups[0]['lr'])
         scheduler2.step()
         torch.save(net.state_dict(), 'Model/class_2nd/sr.pth')
 
