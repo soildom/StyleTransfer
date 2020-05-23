@@ -48,7 +48,6 @@ class SRNet(nn.Sequential):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
-                nn.init.constant_(m.bias, 0)
 
 
 class SRLoss(nn.Module):
