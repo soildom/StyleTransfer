@@ -69,8 +69,8 @@ def train():
     epoch_num = 50
     log_size = 200
 
-    vgg_weight = 1
-    pixel_weight = 1e-2
+    vgg_weight = 1e-3
+    pixel_weight = 1
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -168,5 +168,5 @@ def generate(lr_path):
 
 
 if __name__ == '__main__':
-    # train()
-    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0854_8.png')
+    train()
+    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0854_8.png')
