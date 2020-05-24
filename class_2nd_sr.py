@@ -69,7 +69,7 @@ def train():
     epoch_num = 50
     log_size = 200
 
-    vgg_weight = 1e-3
+    vgg_weight = 1
     pixel_weight = 1
 
     transform = transforms.Compose([
@@ -82,40 +82,41 @@ def train():
     data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = SRNet().to(device).train()
+    net.load_state_dict(torch.load('Model/class_2nd/sr-pixel.pth', map_location=device))
 
-    criterion1 = nn.L1Loss().to(device)
-    optimizer1 = torch.optim.Adam(net.parameters(), lr=2e-4)
-    scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, 5, 0.5)
+    # criterion1 = nn.L1Loss().to(device)
+    # optimizer1 = torch.optim.Adam(net.parameters(), lr=2e-4)
+    # scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, 5, 0.5)
 
     criterion2 = SRLoss().to(device)
     optimizer2 = torch.optim.Adam(net.parameters(), lr=1e-4)
     scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, 5, 0.5)
 
-    for epoch in range(1, epoch_num // 2 + 1):
-        running_pixel_loss = 0.0
-
-        with tqdm(range(1, len(data_loader) + 1)) as pbar:
-            for i, (lr, hr) in zip(pbar, data_loader):
-                lr, hr = lr.to(device), hr.to(device)
-                sr = net(lr)
-
-                pixel_loss = criterion1(hr, sr)
-
-                optimizer1.zero_grad()
-                pixel_loss.backward()
-                optimizer1.step()
-
-                running_pixel_loss += pixel_loss.item()
-
-                pbar.desc = 'stage:1, epoch:%d ===> Pixel Loss:%.4f' % (epoch, pixel_loss.item())
-
-                if i % log_size == 0:
-                    pbar.desc = 'stage:1, epoch:%d ===> Pixel Loss:%.4f' % (epoch, running_pixel_loss / log_size)
-                    print()
-                    running_pixel_loss = 0.0
-
-        scheduler1.step()
-        torch.save(net.state_dict(), 'Model/class_2nd/sr-pixel.pth')
+    # for epoch in range(1, epoch_num // 2 + 1):
+    #     running_pixel_loss = 0.0
+    #
+    #     with tqdm(range(1, len(data_loader) + 1)) as pbar:
+    #         for i, (lr, hr) in zip(pbar, data_loader):
+    #             lr, hr = lr.to(device), hr.to(device)
+    #             sr = net(lr)
+    #
+    #             pixel_loss = criterion1(hr, sr)
+    #
+    #             optimizer1.zero_grad()
+    #             pixel_loss.backward()
+    #             optimizer1.step()
+    #
+    #             running_pixel_loss += pixel_loss.item()
+    #
+    #             pbar.desc = 'stage:1, epoch:%d ===> Pixel Loss:%.4f' % (epoch, pixel_loss.item())
+    #
+    #             if i % log_size == 0:
+    #                 pbar.desc = 'stage:1, epoch:%d ===> Pixel Loss:%.4f' % (epoch, running_pixel_loss / log_size)
+    #                 print()
+    #                 running_pixel_loss = 0.0
+    #
+    #     scheduler1.step()
+    #     torch.save(net.state_dict(), 'Model/class_2nd/sr-pixel.pth')
 
     for epoch in range(1, epoch_num // 2 + 1):
         running_vgg_loss = 0.0
@@ -169,4 +170,4 @@ def generate(lr_path):
 
 if __name__ == '__main__':
     train()
-    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0854_8.png')
+    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0875_8.png')

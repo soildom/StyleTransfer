@@ -106,4 +106,4 @@ def fft_transfer(content_path, style_path):
 
 
 if __name__ == '__main__':
-    fft_transfer('ContentImage/IMG_0375.jpeg', 'StyleImage/神奈川沖浪裏.jpg')
+    fft_transfer('ContentImage/IMG_0375.jpeg', 'StyleImage/Starry_Night.jpg')
