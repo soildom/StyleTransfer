@@ -162,12 +162,12 @@ def generate(lr_path):
         denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
         net = SRNet()
-        net.load_state_dict(torch.load('Model/class_2nd/sr-pixel.pth', map_location=device))
+        net.load_state_dict(torch.load('Model/class_2nd/sr-vgg.pth', map_location=device))
         net = net.eval()
         sr = denormalize(net(transform(lr).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1)
         torchvision.utils.save_image(torch.cat((transforms.ToTensor()(lr_bicubic), sr), 2), 'tmp.png')
 
 
 if __name__ == '__main__':
-    train()
-    # generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0875_8.png')
+    # train()
+    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0889_8.png')
