@@ -128,4 +128,6 @@ def generate(content_path, style_path, generate_from_noise=False):
 
 
 if __name__ == '__main__':
-    generate(content_path='ContentImage/2.jpeg', style_path='StyleImage/2.jpeg', generate_from_noise=True)
+    generate(content_path='ContentImage/IMG_0375.jpeg',
+             style_path='StyleImage/Starry_Night.jpg.jpeg',
+             generate_from_noise=False)
