@@ -5,7 +5,7 @@ from fft import fft_transfer
 from class_1st import generate
 
 
-def img2gif(img_root_path, save_path, duration=0.0001):
+def img2gif(img_root_path, save_path, duration=0.2):
     """
     :param duration: 图像间隔时间
     """
@@ -29,10 +29,10 @@ def img2gif(img_root_path, save_path, duration=0.0001):
 
 
 if __name__ == '__main__':
-    content_path = 'ContentImage/1.png'
-    style_path = 'StyleImage/1.jpg'
+    # content_path = 'ContentImage/1.png'
+    # style_path = 'StyleImage/1.jpg'
 
     # fft_transfer(content_path, style_path)
     # vgg_transfer(content_path, style_path)
 
-    img2gif('Output/vgg/target/', 'test.gif')
+    img2gif('Output/class_1st/target/', 'test.gif')
