@@ -151,10 +151,12 @@ def train():
         torch.save(net.state_dict(), 'Model/class_2nd/sr-vgg.pth')
 
 
-def generate(lr_path):
+def generate(root_path, lr_path):
+    hr_path = 'valid_HR/' + lr_path.split('/')[1]
     with torch.no_grad():
-        lr = Image.open(lr_path).convert('RGB')
-        lr_bicubic = lr.resize((lr.size[0] * 4, lr.size[1] * 4), Image.BICUBIC)
+        hr = Image.open(root_path + hr_path)
+        lr = Image.open(root_path + lr_path)
+        lr_bicubic = lr.resize(hr.size, Image.BICUBIC)
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -165,9 +167,10 @@ def generate(lr_path):
         net.load_state_dict(torch.load('Model/class_2nd/sr-vgg.pth', map_location=device))
         net = net.eval()
         sr = denormalize(net(transform(lr).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1)
-        torchvision.utils.save_image(torch.cat((transforms.ToTensor()(lr_bicubic), sr), 2), 'tmp.png')
+        torchvision.utils.save_image(torch.cat((transforms.ToTensor()(lr_bicubic), sr, transforms.ToTensor()(hr)), 2),
+                                     'tmp.png')
 
 
 if __name__ == '__main__':
     # train()
-    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/valid_LR(x4)/0889_8.png')
+    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/', 'valid_LR(x4)/0833_6.png')

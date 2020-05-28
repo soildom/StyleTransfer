@@ -198,7 +198,7 @@ def generate(src_path):
         denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
         net = TransferNet()
-        net.load_state_dict(torch.load('Model/class_2nd/神奈川沖浪裏.pth', map_location=device))
+        net.load_state_dict(torch.load('Model/class_2nd/Starry_Night.pth', map_location=device))
         net = net.eval()
         torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
                                      'tmp.png')
