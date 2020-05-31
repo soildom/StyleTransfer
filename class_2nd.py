@@ -1,10 +1,5 @@
 from tqdm import tqdm
-from PIL import Image
-import torch
 import torch.nn as nn
-import torch.utils.data as data
-import torchvision
-from torchvision import transforms
 from load_data import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
