@@ -66,7 +66,7 @@ def generate(content_path, style_path, generate_from_noise=False):
         target = torch.randn(content.size())
     else:
         target = content.clone()
-    torchvision.utils.save_image(de_norm(target.detach().squeeze(0)), 'Output/class_1st/target/t-0.jpg')
+    torchvision.utils.save_image(de_norm(target.clone().squeeze(0)), 'Output/class_1st/target/t-0.jpg')
 
     content = content.to(device).requires_grad_(False)
     style = style.to(device).requires_grad_(False)
@@ -95,8 +95,8 @@ def generate(content_path, style_path, generate_from_noise=False):
 
                 # style loss
                 b, c, h, w = f1.size()
-                f1 = f1.view(b * c, h * w)
-                f3 = f3.view(b * c, h * w)
+                f1 = f1.reshape(b * c, h * w)
+                f3 = f3.reshape(b * c, h * w)
                 f1 = torch.mm(f1, f1.t())
                 f3 = torch.mm(f3, f3.t())
                 style_loss += criterion(f1, f3) / 5
