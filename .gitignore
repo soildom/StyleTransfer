@@ -7,7 +7,6 @@ Output/*
 *.jpeg
 *.png
 
-.gitignore
 .DS_Store
 .idea/
 /test.py
