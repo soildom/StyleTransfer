@@ -201,4 +201,4 @@ def generate(src_path):
 
 if __name__ == '__main__':
     # train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
-    generate('/Users/soildom/Documents/PycharmProjects/Style Transfer/ContentImage/IMG_0375.jpeg')
+    generate('ContentImage/IMG_0375.jpeg')
