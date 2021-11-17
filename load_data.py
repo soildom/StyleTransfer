@@ -58,8 +58,7 @@ class SRDataSet(data.Dataset):
 def sr_dataset_test():
     batch_size = 5
     denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
-    data_set = SRDataSet(lr_path='/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/train_LR(x4)/',
-                         hr_path='/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/train_HR/',
+    data_set = SRDataSet(lr_path='//', hr_path='//',
                          transform=transforms.Compose([transforms.ToTensor(),
                                                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                             std=[0.229, 0.224, 0.225])])

@@ -77,8 +77,7 @@ def train():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    data_set = SRDataSet(lr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_LR(x4)/',
-                         hr_path='D:/PycharmProjects/SR/DIV2K/sub_images/train_HR/', transform=transform)
+    data_set = SRDataSet(lr_path='//', hr_path='//', transform=transform)
     data_loader = data.DataLoader(data_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     net = SRNet().to(device).train()
@@ -173,4 +172,4 @@ def generate(root_path, lr_path):
 
 if __name__ == '__main__':
     # train()
-    generate('/Users/soildom/Documents/PycharmProjects/SR/DIV2K/sub_images/', 'valid_LR(x4)/0833_6.png')
+    generate('//', 'xxx.png')

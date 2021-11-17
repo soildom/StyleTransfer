@@ -63,6 +63,6 @@ def show_vgg_features(img_path):
 
 
 if __name__ == '__main__':
-    show_vgg_features(img_path='/Users/soildom/Downloads/Image Style Transfer Using Convolutional Neural Networks.jpg')
+    show_vgg_features(img_path='tmp.png')
 
     # resize('F:/DataSet/COCOtrain2017/', 'Data/COCO-Train2017/', 256)
