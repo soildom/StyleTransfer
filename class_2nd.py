@@ -79,8 +79,8 @@ class PerceptualLoss(nn.Module):
 
             # style loss
             b, c, h, w = f1.size()
-            f1 = f1.view(b, c, h * w)
-            f3 = f3.view(1, c, h * w)
+            f1 = f1.reshape(b, c, h * w)
+            f3 = f3.reshape(1, c, h * w)
             f1_gram = torch.bmm(f1, f1.transpose(1, 2))  # / (c * h * w)
             f3_gram = torch.bmm(f3, f3.transpose(1, 2))  # / (c * h * w)
             style_loss += self.criterion(f1_gram, f3_gram.expand_as(f1_gram)) / 6
