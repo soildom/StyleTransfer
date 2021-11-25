@@ -183,22 +183,26 @@ def train(style_img_path):
 
 
 def generate(src_path):
-    with torch.no_grad():
-        x = Image.open(src_path).convert('RGB')
-        transform = transforms.Compose([
-            transforms.Resize((x.size[1] // 10, x.size[0] // 10), Image.BICUBIC),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
+    scale = 4
+    src = Image.open(src_path).convert('RGB')
+    transform = transforms.Compose([
+        transforms.Resize((src.size[1] // scale, src.size[0] // scale)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    denormalize = transforms.Normalize(mean=[-2.12, -2.04, -1.80], std=[4.37, 4.46, 4.44])
 
+    x = transform(src).unsqueeze(0).to(device)
+    with torch.no_grad():
         net = TransferNet()
         net.load_state_dict(torch.load('Model/class_2nd/Starry_Night.pth', map_location=device))
+        # net.load_state_dict(torch.load('Model/class_2nd/神奈川沖浪裏.pth', map_location=device))
         net = net.eval()
-        torchvision.utils.save_image(denormalize(net(transform(x).unsqueeze(0).to(device)).squeeze(0)).clamp_(0, 1),
-                                     'tmp.png')
+        y = net(x).squeeze(0)
+    torchvision.utils.save_image(denormalize(x).clamp_(0, 1), 'tmp_content.png')
+    torchvision.utils.save_image(denormalize(y).clamp_(0, 1), 'tmp_transfer.png')
 
 
 if __name__ == '__main__':
     # train('Data/class_1st/StyleImage/神奈川沖浪裏.jpg')
-    generate('ContentImage/IMG_0375.jpeg')
+    generate('ContentImage/344229D3-1026-4624-91C2-FC923AA576F4_1_102_o.jpeg')
